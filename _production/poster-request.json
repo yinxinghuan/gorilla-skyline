@@ -1,0 +1,9 @@
+{
+  "endpoint": "https://chat.aiwaves.tech/aigram/api/gen-image",
+  "origin": "https://aigram.app",
+  "selected_source": "https://cdn.aiwaves.tech/prod/telegram/avatar/0/1784982405192894.webp",
+  "selected_source_file": "poster-source.webp",
+  "selection_note": "平台 transit 生成。画面同时清楚呈现两只屋顶猩猩、月亮、风车、城市与抛物线香蕉；裁掉外框后在上方安全区排标题。没有手、设备框或游戏 UI。",
+  "prompt": "Square premium cinematic game poster, two powerful black gorilla silhouettes standing on opposite moonlit skyscraper rooftops, one bright yellow banana projectile frozen at the apex of a huge elegant parabolic arc over a dense blue city skyline, tiny illuminated windows, a slender wind turbine on the far roof visibly bending in the wind, enormous pale moon and deep cobalt night sky, dramatic scale and negative space, sophisticated retro ballistics mood, graphic editorial realism, one clear conflict readable at thumbnail size, dark upper 24 percent reserved for title, no hands, no fingers, no phone, no device frame, no interface, no logo, no text, no letters, no border, no collage, 1024x1024"
+}
+

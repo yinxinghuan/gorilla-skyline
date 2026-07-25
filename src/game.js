@@ -122,6 +122,8 @@ function newGame() {
     stars: [],
 
     scale: 1,
+    verticalScale: 1,
+    groundInset: 0,
     shift: 0,
   };
 
@@ -266,6 +268,16 @@ function calculateScaleAndShift() {
   const verticalScale = window.innerHeight / 500;
 
   state.scale = Math.min(horizontalScale, verticalScale);
+  const portraitBoost = window.innerHeight / Math.max(window.innerWidth, 1) > 1.35
+    ? 1.85
+    : 1;
+  state.verticalScale = Math.min(
+    verticalScale,
+    state.scale * portraitBoost
+  );
+  state.groundInset = portraitBoost > 1
+    ? Math.max(68, Math.min(86, window.innerHeight * .11))
+    : 0;
 
   const sceneNeedsToBeShifted = horizontalScale > verticalScale;
 
@@ -306,7 +318,7 @@ function initializeBombPosition() {
   // Initialize the position of the grab area in HTML
   const grabAreaRadius = 15;
   const left = state.bomb.x * state.scale + state.shift - grabAreaRadius;
-  const bottom = state.bomb.y * state.scale - grabAreaRadius;
+  const bottom = state.groundInset + state.bomb.y * state.verticalScale - grabAreaRadius;
 
   bombGrabAreaDOM.style.left = `${left}px`;
   bombGrabAreaDOM.style.bottom = `${bottom}px`;
@@ -315,14 +327,14 @@ function initializeBombPosition() {
 function initializeWindmillPosition() {
   // Move windmill into position
   const lastBuilding = state.buildings.at(-1);
-  let rooftopY = lastBuilding.height * state.scale;
+  let rooftopY = state.groundInset + lastBuilding.height * state.verticalScale;
   let rooftopX =
     (lastBuilding.x + lastBuilding.width / 2) * state.scale + state.shift;
 
   windmillDOM.style.bottom = `${rooftopY}px`;
   windmillDOM.style.left = `${rooftopX - 100}px`;
 
-  windmillDOM.style.scale = state.scale;
+  windmillDOM.style.scale = `${state.scale} ${state.verticalScale}`;
 
   windInfoDOM.style.bottom = `${rooftopY}px`;
   windInfoDOM.style.left = `${rooftopX - 50}px`;
@@ -336,12 +348,12 @@ function draw() {
   drawBackgroundSky();
 
   // Flip coordinate system upside down
-  ctx.translate(0, window.innerHeight);
+  ctx.translate(0, window.innerHeight - state.groundInset);
   ctx.scale(1, -1);
 
   // Scale and shift view to center
   ctx.translate(state.shift, 0);
-  ctx.scale(state.scale, state.scale);
+  ctx.scale(state.scale, state.verticalScale);
 
   // Draw scene
   drawBackgroundMoon();
@@ -384,7 +396,7 @@ function drawBackgroundMoon() {
     ctx.beginPath();
     ctx.arc(
       window.innerWidth / state.scale - state.shift - 200,
-      window.innerHeight / state.scale - 100,
+      (window.innerHeight - state.groundInset) / state.verticalScale - 100,
       30,
       0,
       2 * Math.PI
@@ -416,7 +428,7 @@ function drawBuildingsWithBlastHoles() {
       0,
       0,
       window.innerWidth / state.scale,
-      window.innerHeight / state.scale
+      (window.innerHeight - state.groundInset) / state.verticalScale
     );
 
     // Inner shape counterclockwise
@@ -671,16 +683,17 @@ function drawBomb() {
   ctx.restore();
 
   // Indicator showing if the bomb is above the screen
-  if (state.bomb.y > window.innerHeight / state.scale) {
+  const visibleWorldHeight = (window.innerHeight - state.groundInset) / state.verticalScale;
+  if (state.bomb.y > visibleWorldHeight) {
     ctx.beginPath();
     ctx.strokeStyle = "white";
-    const distance = state.bomb.y - window.innerHeight / state.scale;
-    ctx.moveTo(state.bomb.x, window.innerHeight / state.scale - 10);
-    ctx.lineTo(state.bomb.x, window.innerHeight / state.scale - distance);
-    ctx.moveTo(state.bomb.x, window.innerHeight / state.scale - 10);
-    ctx.lineTo(state.bomb.x - 5, window.innerHeight / state.scale - 15);
-    ctx.moveTo(state.bomb.x, window.innerHeight / state.scale - 10);
-    ctx.lineTo(state.bomb.x + 5, window.innerHeight / state.scale - 15);
+    const distance = state.bomb.y - visibleWorldHeight;
+    ctx.moveTo(state.bomb.x, visibleWorldHeight - 10);
+    ctx.lineTo(state.bomb.x, visibleWorldHeight - distance);
+    ctx.moveTo(state.bomb.x, visibleWorldHeight - 10);
+    ctx.lineTo(state.bomb.x - 5, visibleWorldHeight - 15);
+    ctx.moveTo(state.bomb.x, visibleWorldHeight - 10);
+    ctx.lineTo(state.bomb.x + 5, visibleWorldHeight - 15);
     ctx.stroke();
   }
 

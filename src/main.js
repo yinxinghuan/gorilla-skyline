@@ -61,6 +61,7 @@ const ghost = document.querySelector('[data-ghost]');
 const result = document.querySelector('#congratulations');
 const finalScore = document.querySelector('#final-score');
 const finalRound = document.querySelector('#final-round');
+const scoreBreakdown = document.querySelector('#score-breakdown');
 const winner = document.querySelector('#winner');
 const resultKicker = document.querySelector('[data-result-kicker]');
 const leaderboard = document.querySelector('#lbFull');
@@ -313,12 +314,22 @@ window.addEventListener('gorilla:grab', () => {
 window.addEventListener('gorilla:throw', () => tone('throw'));
 window.addEventListener('gorilla:impact', () => tone('impact'));
 window.addEventListener('gorilla:gameover', (event) => {
-  const { playerWon, score, round } = event.detail;
+  const {
+    playerWon,
+    score,
+    round,
+    scoreBreakdown: breakdown = { efficiency: 0, clean: 0, wind: 0 }
+  } = event.detail;
   stopGhost();
   resultKicker.textContent = playerWon ? copy.victory : copy.defeat;
   winner.textContent = playerWon ? copy.won : copy.lost;
   finalScore.textContent = String(score);
   finalRound.textContent = String(round);
+  scoreBreakdown.textContent = playerWon
+    ? locale === 'zh'
+      ? `效率 +${breakdown.efficiency} · 城市 +${breakdown.clean} · 风力 +${breakdown.wind}`
+      : `PACE +${breakdown.efficiency} · CLEAN +${breakdown.clean} · WIND +${breakdown.wind}`
+    : locale === 'zh' ? '命中对手才会进入排行榜' : 'HIT THE RIVAL TO RANK';
   result.classList.add('sg-result--show');
   flash.classList.remove('sg-flash--go');
   void flash.offsetWidth;

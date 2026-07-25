@@ -31,6 +31,11 @@ const settings = {
 };
 
 const blastHoleRadius = 18;
+const gorillaScale = 1.05;
+
+function usesPortraitComposition() {
+  return window.innerWidth / Math.max(window.innerHeight, 1) < 0.8;
+}
 
 // The main canvas element and its drawing context
 const canvas = document.getElementById("game");
@@ -122,9 +127,10 @@ function newGame() {
     stars: [],
 
     scale: 1,
-    verticalScale: 1,
     groundInset: 0,
     shift: 0,
+    foregroundBuildingCount: usesPortraitComposition() ? 5 : 8,
+    backgroundBuildingCount: usesPortraitComposition() ? 12 : 17,
   };
 
   // Generate stars
@@ -135,12 +141,12 @@ function newGame() {
   }
 
   // Generate background buildings
-  for (let i = 0; i < 17; i++) {
+  for (let i = 0; i < state.backgroundBuildingCount; i++) {
     generateBackgroundBuilding(i);
   }
 
   // Generate buildings
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < state.foregroundBuildingCount; i++) {
     generateBuilding(i);
   }
 
@@ -211,11 +217,13 @@ function generateBackgroundBuilding(index) {
     ? previousBuilding.x + previousBuilding.width + 4
     : -300;
 
-  const minWidth = 60;
-  const maxWidth = 110;
+  const portrait = usesPortraitComposition();
+  const minWidth = portrait ? 48 : 60;
+  const maxWidth = portrait ? 82 : 110;
   const width = minWidth + Math.random() * (maxWidth - minWidth);
 
-  const smallerBuilding = index < 4 || index >= 13;
+  const smallerBuilding =
+    index < 3 || index >= state.backgroundBuildingCount - 3;
 
   const minHeight = 80;
   const maxHeight = 350;
@@ -235,11 +243,13 @@ function generateBuilding(index) {
     ? previousBuilding.x + previousBuilding.width + 4
     : 0;
 
-  const minWidth = 80;
-  const maxWidth = 130;
+  const portrait = usesPortraitComposition();
+  const minWidth = portrait ? 68 : 80;
+  const maxWidth = portrait ? 100 : 130;
   const width = minWidth + Math.random() * (maxWidth - minWidth);
 
-  const smallerBuilding = index <= 1 || index >= 6;
+  const smallerBuilding =
+    index <= 1 || index >= state.foregroundBuildingCount - 2;
 
   const minHeight = 40;
   const maxHeight = 300;
@@ -263,27 +273,31 @@ function generateBuilding(index) {
 function calculateScaleAndShift() {
   const lastBuilding = state.buildings.at(-1);
   const totalWidthOfTheCity = lastBuilding.x + lastBuilding.width;
-
-  const horizontalScale = window.innerWidth / totalWidthOfTheCity ?? 1;
-  const verticalScale = window.innerHeight / 500;
-
-  state.scale = Math.min(horizontalScale, verticalScale);
-  const portraitBoost = window.innerHeight / Math.max(window.innerWidth, 1) > 1.35
-    ? 1.85
-    : 1;
-  state.verticalScale = Math.min(
-    verticalScale,
-    state.scale * portraitBoost
-  );
-  state.groundInset = portraitBoost > 1
+  const portrait = usesPortraitComposition();
+  state.groundInset = portrait
     ? Math.max(68, Math.min(86, window.innerHeight * .11))
     : 0;
+  const horizontalScale = window.innerWidth / totalWidthOfTheCity || 1;
+  const tallestBuilding = Math.max(
+    ...state.backgroundBuildings.map((building) => building.height),
+    ...state.buildings.map((building) => building.height)
+  );
+  const gorillaRoofHeight = Math.max(
+    state.buildings.at(1).height,
+    state.buildings.at(-2).height
+  ) + 112 * gorillaScale;
+  const sceneWorldHeight = Math.max(tallestBuilding, gorillaRoofHeight);
+  const topSafeArea = portrait ? 168 : 72;
+  const verticalScale = Math.max(
+    0.35,
+    (window.innerHeight - state.groundInset - topSafeArea) / sceneWorldHeight
+  );
 
-  const sceneNeedsToBeShifted = horizontalScale > verticalScale;
-
-  state.shift = sceneNeedsToBeShifted
-    ? (window.innerWidth - totalWidthOfTheCity * state.scale) / 2
-    : 0;
+  state.scale = Math.min(horizontalScale, verticalScale);
+  state.shift = Math.max(
+    0,
+    (window.innerWidth - totalWidthOfTheCity * state.scale) / 2
+  );
 }
 
 window.addEventListener("resize", () => {
@@ -306,8 +320,9 @@ function initializeBombPosition() {
   const gorillaX = building.x + building.width / 2;
   const gorillaY = building.height;
 
-  const gorillaHandOffsetX = state.currentPlayer === 1 ? -28 : 28;
-  const gorillaHandOffsetY = 107;
+  const gorillaHandOffsetX =
+    (state.currentPlayer === 1 ? -28 : 28) * gorillaScale;
+  const gorillaHandOffsetY = 107 * gorillaScale;
 
   state.bomb.x = gorillaX + gorillaHandOffsetX;
   state.bomb.y = gorillaY + gorillaHandOffsetY;
@@ -318,7 +333,7 @@ function initializeBombPosition() {
   // Initialize the position of the grab area in HTML
   const grabAreaRadius = 15;
   const left = state.bomb.x * state.scale + state.shift - grabAreaRadius;
-  const bottom = state.groundInset + state.bomb.y * state.verticalScale - grabAreaRadius;
+  const bottom = state.groundInset + state.bomb.y * state.scale - grabAreaRadius;
 
   bombGrabAreaDOM.style.left = `${left}px`;
   bombGrabAreaDOM.style.bottom = `${bottom}px`;
@@ -327,14 +342,14 @@ function initializeBombPosition() {
 function initializeWindmillPosition() {
   // Move windmill into position
   const lastBuilding = state.buildings.at(-1);
-  let rooftopY = state.groundInset + lastBuilding.height * state.verticalScale;
+  let rooftopY = state.groundInset + lastBuilding.height * state.scale;
   let rooftopX =
     (lastBuilding.x + lastBuilding.width / 2) * state.scale + state.shift;
 
   windmillDOM.style.bottom = `${rooftopY}px`;
   windmillDOM.style.left = `${rooftopX - 100}px`;
 
-  windmillDOM.style.scale = `${state.scale} ${state.verticalScale}`;
+  windmillDOM.style.scale = state.scale;
 
   windInfoDOM.style.bottom = `${rooftopY}px`;
   windInfoDOM.style.left = `${rooftopX - 50}px`;
@@ -353,7 +368,7 @@ function draw() {
 
   // Scale and shift view to center
   ctx.translate(state.shift, 0);
-  ctx.scale(state.scale, state.verticalScale);
+  ctx.scale(state.scale, state.scale);
 
   // Draw scene
   drawBackgroundMoon();
@@ -392,11 +407,20 @@ function drawBackgroundSky() {
 
 function drawBackgroundMoon() {
   if (settings.mode === "dark") {
+    const portrait = usesPortraitComposition();
+    const visibleWorldHeight =
+      (window.innerHeight - state.groundInset) / state.scale;
+    const moonX = portrait
+      ? (window.innerWidth * 0.72) / state.scale - state.shift
+      : window.innerWidth / state.scale - state.shift - 200;
+    const moonY = portrait
+      ? visibleWorldHeight - 170 / state.scale
+      : visibleWorldHeight - 100;
     ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
     ctx.beginPath();
     ctx.arc(
-      window.innerWidth / state.scale - state.shift - 200,
-      (window.innerHeight - state.groundInset) / state.verticalScale - 100,
+      moonX,
+      moonY,
       30,
       0,
       2 * Math.PI
@@ -428,7 +452,7 @@ function drawBuildingsWithBlastHoles() {
       0,
       0,
       window.innerWidth / state.scale,
-      (window.innerHeight - state.groundInset) / state.verticalScale
+      (window.innerHeight - state.groundInset) / state.scale
     );
 
     // Inner shape counterclockwise
@@ -490,6 +514,7 @@ function drawGorilla(player) {
       : state.buildings.at(-2); // Second last building
 
   ctx.translate(building.x + building.width / 2, building.height);
+  ctx.scale(gorillaScale, gorillaScale);
 
   drawGorillaBody();
   drawGorillaLeftArm(player);
@@ -532,8 +557,8 @@ function drawGorillaLeftArm(player) {
     ctx.quadraticCurveTo(
       -44,
       63,
-      -28 - state.bomb.velocity.x / 6.25,
-      107 - state.bomb.velocity.y / 6.25
+      -28 - state.bomb.velocity.x / (6.25 * gorillaScale),
+      107 - state.bomb.velocity.y / (6.25 * gorillaScale)
     );
   } else if (state.phase === "celebrating" && state.currentPlayer === player) {
     ctx.quadraticCurveTo(-44, 63, -28, 107);
@@ -555,8 +580,8 @@ function drawGorillaRightArm(player) {
     ctx.quadraticCurveTo(
       +44,
       63,
-      +28 - state.bomb.velocity.x / 6.25,
-      107 - state.bomb.velocity.y / 6.25
+      +28 - state.bomb.velocity.x / (6.25 * gorillaScale),
+      107 - state.bomb.velocity.y / (6.25 * gorillaScale)
     );
   } else if (state.phase === "celebrating" && state.currentPlayer === player) {
     ctx.quadraticCurveTo(+44, 63, +28, 107);
@@ -683,7 +708,7 @@ function drawBomb() {
   ctx.restore();
 
   // Indicator showing if the bomb is above the screen
-  const visibleWorldHeight = (window.innerHeight - state.groundInset) / state.verticalScale;
+  const visibleWorldHeight = (window.innerHeight - state.groundInset) / state.scale;
   if (state.bomb.y > visibleWorldHeight) {
     ctx.beginPath();
     ctx.strokeStyle = "white";
@@ -797,7 +822,7 @@ function runSimulations(numberOfSimulations) {
       ? state.buildings.at(-2) // Second last building
       : state.buildings.at(1); // Second building
   const enemyX = enemyBuilding.x + enemyBuilding.width / 2;
-  const enemyY = enemyBuilding.height + 30;
+  const enemyY = enemyBuilding.height + 45 * gorillaScale;
 
   for (let i = 0; i < numberOfSimulations; i++) {
     // Pick a random angle and velocity
@@ -981,6 +1006,7 @@ function checkGorillaHit() {
     enemyBuilding.x + enemyBuilding.width / 2,
     enemyBuilding.height
   );
+  ctx.scale(gorillaScale, gorillaScale);
 
   drawGorillaBody();
   let hit = ctx.isPointInPath(state.bomb.x, state.bomb.y);
@@ -1007,17 +1033,18 @@ function announceWinner() {
     winnerDOM.innerText = `Player ${state.currentPlayer}`;
   }
   const playerWon = settings.numberOfPlayers === 1 && state.currentPlayer === 1;
-  const score = playerWon
-    ? Math.max(
-        100,
-        Math.round(
-          1200 -
-            (state.round - 1) * 120 -
-            state.blastHoles.length * 25 +
-            Math.abs(state.windSpeed) * 8
-        )
-      )
-    : 0;
+  const scoreBreakdown = playerWon
+    ? {
+        base: 1000,
+        efficiency: Math.max(0, 500 - (state.round - 1) * 120),
+        clean: Math.max(0, 240 - state.blastHoles.length * 60),
+        wind: Math.round(Math.abs(state.windSpeed) * 15)
+      }
+    : { base: 0, efficiency: 0, clean: 0, wind: 0 };
+  const score = Object.values(scoreBreakdown).reduce(
+    (total, value) => total + value,
+    0
+  );
   window.dispatchEvent(
     new CustomEvent("gorilla:gameover", {
       detail: {
@@ -1026,6 +1053,7 @@ function announceWinner() {
         round: state.round,
         windSpeed: state.windSpeed,
         blastHoles: state.blastHoles.length,
+        scoreBreakdown,
       },
     })
   );

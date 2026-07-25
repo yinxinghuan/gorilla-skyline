@@ -20,12 +20,33 @@ const { chromium } = require('playwright');
     await page.waitForFunction(() => Boolean(window.Gorillas));
     await page.evaluate(() => window.__sgDebug.runGhost());
     await page.waitForTimeout(550);
+    await page.evaluate(() => {
+      const champion = document.querySelector('#lb');
+      champion.hidden = false;
+      champion.innerHTML = '<span>CHAMPION</span><strong>1088</strong>';
+    });
     const ghostState = await page.locator('[data-ghost]').evaluate((el) => ({
       className: el.className,
       opacity: getComputedStyle(el).opacity,
       animationName: getComputedStyle(el).animationName
     }));
     const ghostDebug = await page.evaluate(() => window.__sgDebug?.state());
+    const composition = await page.evaluate(() => {
+      const game = window.Gorillas.getState();
+      const champion = document.querySelector('#lb').getBoundingClientRect();
+      const baseline = innerHeight - game.groundInset;
+      return {
+        scale: game.scale,
+        hasAnisotropicScale: 'verticalScale' in game,
+        foregroundBuildings: game.foregroundBuildingCount,
+        backgroundBuildings: game.backgroundBuildingCount,
+        gorillaScreenHeight: 84 * 1.05 * game.scale,
+        groundInset: game.groundInset,
+        baseline,
+        championTop: champion.top,
+        championClearance: champion.top - baseline
+      };
+    });
     await page.screenshot({ path: `_qa/ui/${viewport.width}x${viewport.height}-ghost.png` });
     const grab = await page.locator('#bomb-grab-area').boundingBox();
     const sx = grab.x + grab.width / 2;
@@ -48,7 +69,12 @@ const { chromium } = require('playwright');
       panel.style.opacity = '1';
       panel.style.visibility = 'visible';
       window.dispatchEvent(new CustomEvent('gorilla:gameover', {
-        detail: { playerWon: true, score: 1088, round: 2 }
+        detail: {
+          playerWon: true,
+          score: 1784,
+          round: 2,
+          scoreBreakdown: { efficiency: 380, clean: 240, wind: 164 }
+        }
       }));
     });
     await page.waitForTimeout(350);
@@ -57,7 +83,7 @@ const { chromium } = require('playwright');
     await page.waitForTimeout(250);
     await page.screenshot({ path: `_qa/ui/${viewport.width}x${viewport.height}-leaderboard-external.png` });
     const download = await page.locator('.sg-download a').textContent();
-    console.log(JSON.stringify({ viewport, ghostState, ghostDebug, grab, velocity, phaseAfterThrow, download, errors }));
+    console.log(JSON.stringify({ viewport, ghostState, ghostDebug, composition, grab, velocity, phaseAfterThrow, download, errors }));
     await context.close();
   }
   await browser.close();

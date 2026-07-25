@@ -19,11 +19,11 @@
 
 ## 3. 核心模块
 
-- `game.js` 的 `state` 维护 phase、当前玩家、回合、风速、建筑、爆破孔、香蕉和视口缩放。
+- `game.js` 的 `state` 维护 phase、当前玩家、回合、风速、建筑、爆破孔、香蕉和视口缩放。手机竖屏使用 5 栋前景 / 12 栋远景的紧凑城市，Canvas 始终等比缩放，并为底部排行榜预留 68–86px。
 - `animate()` 每帧拆 10 个物理子步，依次检测屏幕、建筑和猩猩；电脑回合用多次同步模拟选择最接近目标的速度。
 - Pointer Events 从 `#bomb-grab-area` 开始，拖动距离直接映射到原作的 `bomb.velocity`，松手进入原作 RAF。
 - `main.js` 读取平台资料接口的 `data.name`，只把 `data.user_name` 当旧响应兼容；平台外固定使用 `AlterU`。
-- 排行榜使用永久 UUID 调用 rank save/list；冠军入口和全榜共用数据。全榜他人行显示 `head_url` 或首字母，并通过 `openAigramProfile` 打开资料。
+- 排行榜使用永久 UUID 调用 rank save/list；冠军入口和全榜共用数据。胜利积分拆成基础、回合效率、城市完整度和风力挑战四项，并在结算中逐项显示。全榜他人行显示 `head_url` 或首字母，并通过 `openAigramProfile` 打开资料。
 - 新纪录提交后重拉榜单，只向 `(旧最好分, 新分数)` 区间内最高的一位其他用户发送 `score_beat`。
 
 ## 4. 扩展点
@@ -33,4 +33,3 @@
 - 改布局、触控尺寸和排行榜视觉：修改 `src/style.css`。
 - 改可见文案：修改 `src/main.js` 的 `copy`。
 - 更新平台桥：从 `/Users/yin/code/games/shared/vanilla/aigram-bridge.js` 重新同步，不手写简化。
-

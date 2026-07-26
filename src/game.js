@@ -31,7 +31,7 @@ const settings = {
 };
 
 const blastHoleRadius = 18;
-const gorillaScale = 1.05;
+const gorillaScale = 0.9;
 
 function usesPortraitComposition() {
   return window.innerWidth / Math.max(window.innerHeight, 1) < 0.8;

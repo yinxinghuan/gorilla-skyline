@@ -40,7 +40,7 @@ const { chromium } = require('playwright');
         hasAnisotropicScale: 'verticalScale' in game,
         foregroundBuildings: game.foregroundBuildingCount,
         backgroundBuildings: game.backgroundBuildingCount,
-        gorillaScreenHeight: 84 * 1.05 * game.scale,
+        gorillaScreenHeight: 84 * 0.9 * game.scale,
         groundInset: game.groundInset,
         baseline,
         championTop: champion.top,
